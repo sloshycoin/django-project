@@ -76,7 +76,6 @@ class Lesson(models.Model):
 
 
 # Enrollment model
-#
 class Enrollment(models.Model):
     AUDIT = 'audit'
     HONOR = 'honor'

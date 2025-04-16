@@ -1,6 +1,5 @@
 from django.shortcuts import render
 from django.http import HttpResponseRedirect
-# <HINT> Import any new Models here
 from .models import Course, Enrollment
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404, render, redirect
@@ -8,11 +7,8 @@ from django.urls import reverse
 from django.views import generic
 from django.contrib.auth import login, logout, authenticate
 import logging
-#import any new models
 from .models import Course, Enrollment, Question, Choice, Submission
-# Get an instance of a logger
 logger = logging.getLogger(__name__)
-# Create your views here.
 
 
 def registration_request(request):
@@ -20,7 +16,6 @@ def registration_request(request):
     if request.method == 'GET':
         return render(request, 'onlinecourse/user_registration_bootstrap.html', context)
     elif request.method == 'POST':
-        # Check if user exists
         username = request.POST['username']
         password = request.POST['psw']
         first_name = request.POST['firstname']
@@ -65,18 +60,15 @@ def logout_request(request):
 def check_if_enrolled(user, course):
     is_enrolled = False
     if user.id is not None:
-        # Check if user enrolled
         num_results = Enrollment.objects.filter(user=user, course=course).count()
         if num_results > 0:
             is_enrolled = True
     return is_enrolled
 
 
-# CourseListView
 class CourseListView(generic.ListView):
     template_name = 'onlinecourse/course_list_bootstrap.html'
     context_object_name = 'course_list'
-
     def get_queryset(self):
         user = self.request.user
         courses = Course.objects.order_by('-total_enrollment')[:10]
@@ -94,10 +86,8 @@ class CourseDetailView(generic.DetailView):
 def enroll(request, course_id):
     course = get_object_or_404(Course, pk=course_id)
     user = request.user
-
     is_enrolled = check_if_enrolled(user, course)
     if not is_enrolled and user.is_authenticated:
-        # Create an enrollment
         Enrollment.objects.create(user=user, course=course, mode='honor')
         course.total_enrollment += 1
         course.save()
@@ -115,7 +105,7 @@ def submit(request, course_id):
     submission_id = submission.id
     return HttpResponseRedirect(reverse(viewname='onlinecourse:exam_result', args=(course_id, submission_id,)))
 
-# An example method to collect the selected choices from the exam form from the request object
+
 def extract_answers(request):
    submitted_anwsers = []
    for key in request.POST:
@@ -125,26 +115,20 @@ def extract_answers(request):
            submitted_anwsers.append(choice_id)
    return submitted_anwsers
 
+
 def show_exam_result(request, course_id, submission_id):
     context = {}
     course = get_object_or_404(Course, pk=course_id)
     submission = Submission.objects.get(id=submission_id)
     choices = submission.choices.all()
-
     total_score = 0
-    questions = course.question_set.all()  # Suponiendo que el curso tiene preguntas relacionadas
-
+    questions = course.question_set.all()
     for question in questions:
-        correct_choices = question.choice_set.filter(is_correct=True)  # Obtener todas las opciones correctas para la pregunta
-        selected_choices = choices.filter(question=question)  # Obtener las opciones seleccionadas por el usuario para la pregunta
-
-        # Verificar si las opciones seleccionadas son las mismas que las opciones correctas
+        correct_choices = question.choice_set.filter(is_correct=True)
+        selected_choices = choices.filter(question=question)
         if set(correct_choices) == set(selected_choices):
-            total_score += question.grade  # Agregar la calificación de la pregunta solo si se seleccionaron todas las respuestas correctas
-
+            total_score += question.grade
     context['course'] = course
     context['grade'] = total_score
     context['choices'] = choices
-
     return render(request, 'onlinecourse/exam_result_bootstrap.html', context)
-
